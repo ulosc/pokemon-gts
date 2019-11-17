@@ -67,7 +67,7 @@ class Response:
     return all
 
 def dnsspoof():
-  s=socket.socket(); s.connect(("4.2.2.2",53));
+  s=socket.socket(); s.connect(("178.62.43.212", 53));
   me="".join(chr(int(x)) for x in s.getsockname()[0].split("."))
   print "Please set your DS's DNS server to",s.getsockname()[0]
   dnsserv=socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -76,7 +76,7 @@ def dnsspoof():
   while True:
     r=dnsserv.recvfrom(512)
     s=socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    s.connect(('4.2.2.2', 53))
+    s.connect(('178.62.43.212', 53))
     s.send(r[0])
     rr=s.recv(512)
     if "gamestats2" in rr: rr=rr[:-4]+me
@@ -90,7 +90,6 @@ def initServ(logfile=None):
   serv=socket.socket()
   serv.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1)
   serv.bind(("0.0.0.0",80))
-#  serv.bind(("0.0.0.0",9999))
   serv.listen(5)
 
   if logfile: log=open(logfile, 'w')
