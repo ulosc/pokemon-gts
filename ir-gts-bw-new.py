@@ -173,7 +173,7 @@ def main():
         if os.getuid() != 0:
             print 'Program must be run as superuser. Enter your password below' + \
                     ' if prompted.'
-            os.system('sudo ' + argv[0] + ' root')
+            os.system('sudo ' + './' + argv[0] + ' root')
             exit(0)
 
     print "\n", gtsvar.version,"\n"
