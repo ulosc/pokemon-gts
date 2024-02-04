@@ -1,11 +1,11 @@
-import namegen
-import stats
+from . import namegen
+from . import stats
 import os
-from data import *
+from .data import *
 from platform import system
 from array import array
 from datetime import date
-from boxtoparty import makeparty
+from .boxtoparty import makeparty
 
 def makends(gba):
     # Deconstructing GBA .3gpkm file
@@ -103,7 +103,7 @@ def convertname(n):
             break
         c = name.get(val)
         if c:
-            c = [k for k, v in namegen.namelist.iteritems() if v == c][0]
+            c = [k for k, v in namegen.namelist.items() if v == c][0]
             converted += chr(c) + '\x01'
 
     converted += '\xff\xff'
@@ -1437,11 +1437,11 @@ pokemonindex = {
 }
 
 def attainpkm():
-    print 'Enter the path or drag the pkm file here, then\npress Enter, and enter another path. Finish by typing\nDone then press Enter.'
-    print '(Type Back to go back)'
+    print('Enter the path or drag the pkm file here, then\npress Enter, and enter another path. Finish by typing\nDone then press Enter.')
+    print('(Type Back to go back)')
 
     while True:
-        path = raw_input().strip()
+        path = input().strip()
 
         if path == "Back" or path == "back": return
         
@@ -1455,7 +1455,7 @@ def attainpkm():
             path = path[:-1]
         if os.path.exists(path) and path.lower().endswith('.pkm'): break
         else:
-            print 'Invalid file name, try again'
+            print('Invalid file name, try again')
             continue
 
     with open(path, 'rb') as f:

@@ -1,4 +1,4 @@
-import socket, sys, time, thread
+import socket, sys, time, _thread
 
 class Request:
   def __init__(self, h=None):
@@ -12,15 +12,15 @@ class Request:
     #request=h.split("/")[3][:h.find("HTTP")-1]
     self.page=request[:request.find("?")]
     self.action=request[request.find("/")+1:request.find(".asp?")]
-    vars=dict((i[:i.find("=")],i[i.find("=")+1:]) for i in request[request.find("?")+1:].split("&"))
+    vars=dict((i[:i.find("=")], i[i.find("=")+1:]) for i in request[request.find("?")+1:].split("&"))
     self.getvars=vars
   def __str__(self):
-    request="%s?%s"%(self.page, '&'.join("%s=%s"%i for i in self.getvars.items()))
+    request="%s?%s"%(self.page, '&'.join("%s=%s"%i for i in list(self.getvars.items())))
     return 'GET /syachi2ds/web/%s HTTP/1.1\r\n'%request+ \
     'Host: gamestats2.gs.nintendowifi.net\r\nUser-Agent: GameSpyHTTP/1.0\r\n'+ \
     'Connection: close\r\n\r\n'
   def __repr__(self):
-    return "<Request for %s, with %s>"%(self.action, ", ".join(i+"="+j for i, j in self.getvars.items()))
+    return "<Request for %s, with %s>"%(self.action, ", ".join(i+"="+j for i, j in list(self.getvars.items())))
 
 class Response:
   pokes=None
@@ -69,10 +69,10 @@ class Response:
 def dnsspoof():
   s=socket.socket(); s.connect(("178.62.43.212", 53));
   me="".join(chr(int(x)) for x in s.getsockname()[0].split("."))
-  print "Please set your DS's DNS server to",s.getsockname()[0]
+  print("Please set your DS's DNS server to", s.getsockname()[0])
   dnsserv=socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-  dnsserv.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1)
-  dnsserv.bind(("0.0.0.0",53))
+  dnsserv.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+  dnsserv.bind(("0.0.0.0", 53))
   while True:
     r=dnsserv.recvfrom(512)
     s=socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -86,10 +86,10 @@ serv=None
 log=None
 def initServ(logfile=None):
   global serv, log
-  thread.start_new_thread(dnsspoof,())
+  _thread.start_new_thread(dnsspoof, ())
   serv=socket.socket()
-  serv.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1)
-  serv.bind(("0.0.0.0",80))
+  serv.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+  serv.bind(("0.0.0.0", 80))
   serv.listen(5)
 
   if logfile: log=open(logfile, 'w')

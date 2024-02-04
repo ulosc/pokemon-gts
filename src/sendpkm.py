@@ -1,8 +1,8 @@
 #!/usr/bin/python
 
-from pokehaxlib import *
-from pkmlib import encode
-from boxtoparty import makeparty
+from .pokehaxlib import *
+from .pkmlib import encode
+from .boxtoparty import makeparty
 #from gbatonds import makends
 from sys import argv, exit
 from platform import system
@@ -13,13 +13,13 @@ import os.path, gtsvar, hashlib
 
 def sendpkm():
 
-    print 'Note: you must exit the GTS before sending a pkm'
-    print '4th Gen Pokemon files are currently unsupported.'
-    print 'Enter the path or drag the pkm file here'
-    print '(Type Back to go back)'
+    print('Note: you must exit the GTS before sending a pkm')
+    print('4th Gen Pokemon files are currently unsupported.')
+    print('Enter the path or drag the pkm file here')
+    print('(Type Back to go back)')
 
     while True:
-        path = raw_input().strip()
+        path = input().strip()
 
         if path == "Back" or path == "back": return
                
@@ -34,22 +34,22 @@ def sendpkm():
         if os.path.exists(path) and path.lower().endswith('.pkm'):
             break
         else:
-            print 'Invalid file name, try again'
+            print('Invalid file name, try again')
             continue
         
     sendingpkm(path)
 
 def multisend():
     
-    print 'Note: you must exit the GTS before sending each Pokemon'
-    print '4th Gen Pokemon files are currently unsupported.\n'
-    print 'Enter the path or drag the pkm file here, then\npress Enter, and enter another path. Finish by typing\nDone then press Enter.'
-    print '(Type Back to go back)'
+    print('Note: you must exit the GTS before sending each Pokemon')
+    print('4th Gen Pokemon files are currently unsupported.\n')
+    print('Enter the path or drag the pkm file here, then\npress Enter, and enter another path. Finish by typing\nDone then press Enter.')
+    print('(Type Back to go back)')
 
     multi = list()
 
     while True:
-        path = raw_input().strip()
+        path = input().strip()
 
         if path == "Back" or path == "back": return
         
@@ -68,7 +68,7 @@ def multisend():
         if os.path.exists(path) and path.lower().endswith('.pkm'):
             multi.append(path)
         else:
-            print 'Invalid file name, try again'
+            print('Invalid file name, try again')
             continue
 
 def multisender(multi):
@@ -76,20 +76,20 @@ def multisender(multi):
     multisize = len(multi)
 
     for pokes in multi:
-        print '\nSending %s...' % pokes
+        print('\nSending %s...' % pokes)
         sendingpkm(pokes)
         multisize = multisize - 1
         if multisize >= 1:
-            raw_input('\nPlease exit the GTS, then press Enter to send next Pokemon\n')
+            input('\nPlease exit the GTS, then press Enter to send next Pokemon\n')
             continue
         elif multisize == 0:
-            print '\nFinished sending\n'
+            print('\nFinished sending\n')
             return
 
 
 def queuesend():
-    print 'Note: you must exit the GTS before sending each Pokemon'
-    print '4th Gen Pokemon files are currently unsupported.\n'
+    print('Note: you must exit the GTS before sending each Pokemon')
+    print('4th Gen Pokemon files are currently unsupported.\n')
     
     qpoke = listdir('queue')
     qpokef = []
@@ -101,24 +101,24 @@ def queuesend():
     qpokefsize = len(qpokef)
 
     for qpokesf in qpokef:
-        print 'Sending %s...\n' % qpokesf
+        print('Sending %s...\n' % qpokesf)
         sendingpkm(qpokesf)
         qpokefsize = qpokefsize - 1
         if qpokefsize >= 1:
-            raw_input('\nYou must exit the GTS before sending the next Pokemon.\nHit Enter when ready.\n')
+            input('\nYou must exit the GTS before sending the next Pokemon.\nHit Enter when ready.\n')
             continue
         elif qpokefsize == 0:
-            print '\nFinished sending\n'
+            print('\nFinished sending\n')
             return
 
 def customqueuesend():
-    print 'Note: you must exit the GTS before sending each Pokemon'
-    print '4th Gen Pokemon files are currently unsupported.\n'
+    print('Note: you must exit the GTS before sending each Pokemon')
+    print('4th Gen Pokemon files are currently unsupported.\n')
     
     while True:
-        print 'Enter the path of the queue folder, then hit Enter'
-        print '(Type Back to go back)'
-        folder = raw_input().strip()
+        print('Enter the path of the queue folder, then hit Enter')
+        print('(Type Back to go back)')
+        folder = input().strip()
         folder = os.path.normpath(folder)
         
         if folder.startswith('"') or folder.startswith("'"):
@@ -128,10 +128,10 @@ def customqueuesend():
 
         if folder == "Back" or folder == "back": return
         
-        print '\n'
+        print('\n')
 
         if os.path.exists(folder) == False:
-            print 'Invalid folder, try again\n'
+            print('Invalid folder, try again\n')
             continue
         elif os.path.exists(folder) == True:
             break
@@ -140,19 +140,19 @@ def customqueuesend():
     qpokesf = list()
     
     for qpokes in qpoke:
-        qpokes = '%s/%s' % (folder,qpokes)
+        qpokes = '%s/%s' % (folder, qpokes)
         if os.path.exists(qpokes) and qpokes.lower().endswith('.pkm'): qpokesf.append(qpokes)
 
     qpokesfsize = len(qpokesf)
 
     for qpokes in qpokesf:
-        print 'Sending %s...' % qpokes
+        print('Sending %s...' % qpokes)
         sendingpkm(qpokes)
         if qpokesfsize >= qpokesfsize - 1:
-            raw_input('\nYou must exit the GTS before sending the next Pokemon.\nHit Enter when ready.')
+            input('\nYou must exit the GTS before sending the next Pokemon.\nHit Enter when ready.')
             continue
         elif qpokesfsize == 0:
-            print '\nFinished sending\n'
+            print('\nFinished sending\n')
             return
 
 
@@ -162,14 +162,14 @@ def sendingpkm(path):
 
     # Adding extra 100 bytes of party data
     if len(pkm) != 220 and len(pkm) != 136:
-        print 'Invalid filesize: %d bytes. Needs to be either 136 or 220 bytes.' % len(pkm)
+        print('Invalid filesize: %d bytes. Needs to be either 136 or 220 bytes.' % len(pkm))
         return
     if len(pkm) == 136:
-        print 'Pokemon is in PC format; adding party information now... ',
+        print('Pokemon is in PC format; adding party information now... ', end=' ')
         pkm = makeparty(pkm)
-        print 'Done.'
+        print('Done.')
 
-    print 'Encoding!'
+    print('Encoding!')
     bin = encode(pkm)
 
 ###
@@ -195,7 +195,7 @@ def sendingpkm(path):
 ###
 
     # Adding GTS data to end of file
-    print 'Adding GTS data... ',
+    print('Adding GTS data... ', end=' ')
     bin += '\x00' * 16
     bin += pkm[0x08:0x0a] # id
     if ord(pkm[0x40]) & 0x04: bin += '\x03' # Gender
@@ -211,12 +211,12 @@ def sendingpkm(path):
     bin += '\xDB\x02' # Country, City
     bin += '\x46\x01\x15\x02' # Sprite, Exchanged (?), Version, Lang
     bin += '\x01\x00' # Unknown
-    print 'Done.'
+    print('Done.')
 
     sent = False
     response = ''
 
-    print 'Ready to send; you can now enter the GTS.'
+    print('Ready to send; you can now enter the GTS.')
     while not sent:
         sock, req = getReq()
         a = req.action
@@ -225,7 +225,7 @@ def sendingpkm(path):
             continue
         elif a == 'info':
             response = '\x01\x00'
-            print 'Connection established.'
+            print('Connection established.')
         elif a == 'setProfile': response = '\x00' * 8
         elif a == 'post': response = '\x0c\x00'
         elif a == 'search': response = '\x01\x00'
@@ -239,4 +239,4 @@ def sendingpkm(path):
         response += m.hexdigest()
         sendResp(sock, response)
 
-    print 'Pokemon sent successfully.\n',
+    print('Pokemon sent successfully.\n', end=' ')

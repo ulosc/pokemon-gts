@@ -35,43 +35,43 @@ import os
 
 def offlinemenu():
     while True:
-        print '\nChoose:'
-        print 'a - analyze pkm file'
-        print 'o - continue to online mode'
-        print 'c - convert .pkm files to newer gens'
-        print 'q - quit\n'
-        print '\nPlease type your option, and press Enter\n'
-        choice = raw_input().strip().lower()
+        print('\nChoose:')
+        print('a - analyze pkm file')
+        print('o - continue to online mode')
+        print('c - convert .pkm files to newer gens')
+        print('q - quit\n')
+        print('\nPlease type your option, and press Enter\n')
+        choice = input().strip().lower()
 
         if choice.startswith('a'):
             clear()
             statana()
         elif choice.startswith('o'):
             clear()
-            print '\nContinuing to online menu...\n\n'
+            print('\nContinuing to online menu...\n\n')
             break
         elif choice.startswith('c'):
             threetofour()
         elif choice.startswith('q'):
             clear()
-            print 'Quitting program'
+            print('Quitting program')
             cleanexit()
         else:
-            print 'Invalid option, please try again.'
+            print('Invalid option, please try again.')
             continue
         clear()
-        print 'Returning to menu...\n'
+        print('Returning to menu...\n')
 
 def onlinemenu():
     while True:
-        print '\nChoose an option:'
-        print 's - send pkm file to game'
-        print 'r - receive Pokemon from game'
-        print 'm - receive multiple Pokemon from game'
-        print 'a - analyze pkm file'
-        print 'q - quit\n'
-        print '\nPlease type your option, and press Enter\n'
-        option = raw_input().strip().lower()
+        print('\nChoose an option:')
+        print('s - send pkm file to game')
+        print('r - receive Pokemon from game')
+        print('m - receive multiple Pokemon from game')
+        print('a - analyze pkm file')
+        print('q - quit\n')
+        print('\nPlease type your option, and press Enter\n')
+        option = input().strip().lower()
 
         if option.startswith('s'):
             clear()
@@ -81,7 +81,7 @@ def onlinemenu():
             getpkm()
         elif option.startswith('m'):
             clear()
-            print 'Press ctrl + c to return to main menu'
+            print('Press ctrl + c to return to main menu')
             while True:
                 try: getpkm()
                 except KeyboardInterrupt: break
@@ -90,23 +90,23 @@ def onlinemenu():
             statana()
         elif option.startswith('q'):
             clear()
-            print 'Quitting program'
+            print('Quitting program')
             cleanexit()
         else:
-            print 'Invalid option, try again'
+            print('Invalid option, try again')
             continue
         clear()
-        print 'Returning to main menu...'
+        print('Returning to main menu...')
 
 def convertmenu():
     while True:
-        print '\nChoose a conversion option:'
-        print '1 - convert 3rd gen Pokemon file to 4th gen .pkm'
-        print '2 - convert 3rd gen Pokemon file to 5th gen .pkm'
-        print '3 - convert 4th gen .pkm to 5th gen .pkm'
-        print 'r - return to main menu'
-        print 'q - quit'
-        number = raw_input().strip().lower()
+        print('\nChoose a conversion option:')
+        print('1 - convert 3rd gen Pokemon file to 4th gen .pkm')
+        print('2 - convert 3rd gen Pokemon file to 5th gen .pkm')
+        print('3 - convert 4th gen .pkm to 5th gen .pkm')
+        print('r - return to main menu')
+        print('q - quit')
+        number = input().strip().lower()
 
         if number.startswith('1'): 
             clear()
@@ -122,25 +122,25 @@ def convertmenu():
             break
         elif number.startswith('q'):
             clear()
-            print 'Quitting program'
+            print('Quitting program')
             cleanexit()
         else:
-            print 'Invalid option, try again'
+            print('Invalid option, try again')
             continue
         clear()
-        print 'Returning to conversion menu...'
+        print('Returning to conversion menu...')
 
 def sendmenu():
     while True:
-        print '\nChoose an option to send Pokemon:'
-        print 'o - send one Pokemon to game'
-        print 'm - choose & send multiple Pokemon to game'
-        print 'f - send all Pokemon in queue folder'
-        print 'c - choose folder full of Pokemon to send'
-        print 'r - return to main menu'
-        print 'q - quit\n'
-        print '\nPlease type your option, and press Enter\n'
-        soption = raw_input().strip().lower()
+        print('\nChoose an option to send Pokemon:')
+        print('o - send one Pokemon to game')
+        print('m - choose & send multiple Pokemon to game')
+        print('f - send all Pokemon in queue folder')
+        print('c - choose folder full of Pokemon to send')
+        print('r - return to main menu')
+        print('q - quit\n')
+        print('\nPlease type your option, and press Enter\n')
+        soption = input().strip().lower()
 
         if soption.startswith('o'):
             clear()
@@ -158,29 +158,29 @@ def sendmenu():
             clear()
             break
         elif soption.startswith('q'):
-            print 'Quitting program'
+            print('Quitting program')
             cleanexit()
         else:
-            print 'Invalid option, try again'
+            print('Invalid option, try again')
             continue
         clear()
-        print 'Returning to send menu...'
+        print('Returning to send menu...')
 
 
 def main():
     s = system()
     if s == 'Darwin' or s == 'Linux':
         if os.getuid() != 0:
-            print 'Program must be run as superuser. Enter your password below' + \
-                    ' if prompted.'
+            print('Program must be run as superuser. Enter your password below' + \
+                    ' if prompted.')
             os.system('sudo ' + './' + argv[0] + ' root')
             exit(0)
 
-    print "\n", gtsvar.version,"\n"
+    print("\n", gtsvar.version, "\n")
     if gtsvar.stable == 'no':
-        print "==============================================="
-        print "EXPERIMENTAL/UNSTABLE VERSION! MIGHT HAVE BUGS!"
-        print "===============================================\n"
+        print("===============================================")
+        print("EXPERIMENTAL/UNSTABLE VERSION! MIGHT HAVE BUGS!")
+        print("===============================================\n")
 
     offlinemenu()
 

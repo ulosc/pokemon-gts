@@ -1,7 +1,7 @@
 from array import array
-from namegen import namegen
-from boxtoparty import makeparty, ivcheck, evcheck
-from data import *
+from .namegen import namegen
+from .boxtoparty import makeparty, ivcheck, evcheck
+from .data import *
 from platform import system
 from datetime import datetime
 import os, struct, sys
@@ -14,16 +14,16 @@ def statread(pkm, path):
     s += '\n'
     s += '=' * 80 + '\n\n'
 
-    print 'Writing stats to statlog.txt... '
+    print('Writing stats to statlog.txt... ')
     with open('statlog.txt', 'a') as f:
         f.write(s)
-    print 'Done.'
+    print('Done.')
 
 def statana():
     while True:
-        print 'Enter .PKM file path'
-        print '(Type Back to go back)'
-        path = raw_input().strip()
+        print('Enter .PKM file path')
+        print('(Type Back to go back)')
+        path = input().strip()
 
         if path == 'Back' or path == 'back':
             return
@@ -37,26 +37,26 @@ def statana():
             path = path[:-1]
         if os.path.exists(path) and path.lower().endswith('.pkm'): break
         else:
-            print 'Invalid file name, try again'
+            print('Invalid file name, try again')
             continue
         
     with open(path, 'rb') as f:
         pkm = f.read()
 
     if len(pkm) != 220 and len(pkm) != 136:
-        print 'Invalid filesize: %d bytes. Needs to be either 136 or 220 bytes.' % len(pkm)
+        print('Invalid filesize: %d bytes. Needs to be either 136 or 220 bytes.' % len(pkm))
         return
     if len(pkm) == 136:
-        print 'Pokemon is in PC format; adding party information now... ',
+        print('Pokemon is in PC format; adding party information now... ', end=' ')
         pkm = makeparty(pkm)
-        print 'Done.'
+        print('Done.')
     p = array('B')
     p.fromstring(pkm)
     
     s = statsetup(p, pkm, path)
 
-    print '\nBeginning analysis:\n'
-    print s
+    print('\nBeginning analysis:\n')
+    print(s)
 	
     csum = struct.unpack('<6s1H', open(path, 'rb').read(8))[1]
     fcsum = struct.unpack(">I", struct.pack("<I", csum))[0]
@@ -69,9 +69,9 @@ def statana():
     calcsum = ("%02x" % bigesum)[:-4]
 
     if lilesum != csum:
-    	print "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
-	print "File's checksum is incorrect(%s), should be %s." % (fcsum, calcsum)
-	print "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+    	print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+	print("File's checksum is incorrect(%s), should be %s." % (fcsum, calcsum))
+	print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
 
     b = (p[0x38:0x3c])
     ivs = b[0] + (b[1] << 8) + (b[2] << 16) + (b[3] << 24)
@@ -83,22 +83,22 @@ def statana():
     spd = (ivs & 0x3e000000) >> 25
     total = hp + atk + df + spe + spa + spd
     if total == 186:
-	print "\n! IVs are perfect, could be RNG abused or hacked. !"
+	print("\n! IVs are perfect, could be RNG abused or hacked. !")
     elif total >= 187:
-        print "\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
-	print "IVs are too high, none can exceed 31."
-	print "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+        print("\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+	print("IVs are too high, none can exceed 31.")
+	print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
 
     evs = p[0x18:0x1e]
     total = evs[0] + evs[1] + evs[2] + evs[3] + evs[4] + evs[5]
     if total == 508:
-	print "\n! Total EVs exactly 508. !"
+	print("\n! Total EVs exactly 508. !")
     elif total == 510:
-    	print "\n! Total EVs exactly 510. !"
+    	print("\n! Total EVs exactly 510. !")
     elif total >= 511:
-	print "\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
-	print "Total EVs over 510, too high."
-	print "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+	print("\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+	print("Total EVs over 510, too high.")
+	print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
 
 
     if p[0x40] & 4:
@@ -118,28 +118,28 @@ def statana():
     genratio = rgender / 2.56
 
     if gender != cgender and gender == 1:
-	print "\n! Probably female, check gender ratio (file's ratio is %d%%). !" % (genratio)
+	print("\n! Probably female, check gender ratio (file's ratio is %d%%). !" % (genratio))
     if gender != cgender and gender == 2:
-	print "\n! Probably male, check gender ratio (file's ratio is %d%%). !" % (genratio)
+	print("\n! Probably male, check gender ratio (file's ratio is %d%%). !" % (genratio))
 
 
     if p[0x5f] == 0:
-    	print '\n!!!!!!!!!!!!!!!!!!!!!!!'
-	print 'Game of origin not set.'
-	print '!!!!!!!!!!!!!!!!!!!!!!!'
+    	print('\n!!!!!!!!!!!!!!!!!!!!!!!')
+	print('Game of origin not set.')
+	print('!!!!!!!!!!!!!!!!!!!!!!!')
     elif p[0x5f] == 24 or p[0x5f] == 25:
-        print '\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!'
-        print 'Game of origin too new (X/Y gen 6).'
-        print '!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!'
+        print('\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+        print('Game of origin too new (X/Y gen 6).')
+        print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
 
     secid = (p[0x0f] << 8) + p[0x0e]
-    if secid == 0: print "\n!!!!! Secret ID is 0 (could be an event). !!!!!"
+    if secid == 0: print("\n!!!!! Secret ID is 0 (could be an event). !!!!!")
 
-    print '\n========End of analysis========\n'
+    print('\n========End of analysis========\n')
 	
     statread(pkm, path)
 
-    print '\n'
+    print('\n')
 
 def statsetup(p, pkm, path):
     pid = p[0x00] + (p[0x01] << 8) + (p[0x02] << 16) + (p[0x03] << 24)
