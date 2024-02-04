@@ -13,8 +13,9 @@ def pcsearch():
         print('(Type Back to go back)')
         path = input().strip()
 
-        if path == "Back" or path == "back": return
-        
+        if path == "Back" or path == "back":
+            return
+
         path = os.path.normpath(path)
         if system() != 'Windows':
             path = path.replace('\\', '')
@@ -23,11 +24,12 @@ def pcsearch():
             path = path[1:]
         if path.endswith('"') or path.endswith("'"):
             path = path[:-1]
-        if os.path.exists(path) and path.lower().endswith('.pkm'): break
+        if os.path.exists(path) and path.lower().endswith('.pkm'):
+            break
         else:
             print('Invalid file name, try again')
             continue
-        
+
     with open(path, 'rb') as f:
         pkm = f.read()
 
@@ -54,15 +56,16 @@ def pcdownload():
     print('(Type Back to go back)')
     pcurl = input()
 
-    if pcurl == "Back" or pcurl == "back": return
-    
+    if pcurl == "Back" or pcurl == "back":
+        return
+
     pcurl = '%s&export=Download+.pkm+file' % pcurl
     print('\nDownloading pkm as temp.pkm, will delete after upload.')
 
     if os.path.exists('temp.pkm'):
         print('temp.pkm already exists, deleting...')
         os.remove("temp.pkm")
-    
+
     urllib.request.urlretrieve(pcurl, "temp.pkm")
     print('Download finished, onto encoding...\n')
 

@@ -8,7 +8,8 @@ from sys import argv, exit
 from platform import system
 from base64 import urlsafe_b64encode
 from os import listdir
-import os.path, gtsvar, hashlib
+from . import gtsvar
+import os.path, hashlib
 
 
 def sendpkm():
@@ -21,8 +22,9 @@ def sendpkm():
     while True:
         path = input().strip()
 
-        if path == "Back" or path == "back": return
-               
+        if path == "Back" or path == "back":
+            return
+
         path = os.path.normpath(path)
         if system() != 'Windows':
             path = path.replace('\\', '')
@@ -36,11 +38,11 @@ def sendpkm():
         else:
             print('Invalid file name, try again')
             continue
-        
+
     sendingpkm(path)
 
 def multisend():
-    
+
     print('Note: you must exit the GTS before sending each Pokemon')
     print('4th Gen Pokemon files are currently unsupported.\n')
     print('Enter the path or drag the pkm file here, then\npress Enter, and enter another path. Finish by typing\nDone then press Enter.')
@@ -51,8 +53,9 @@ def multisend():
     while True:
         path = input().strip()
 
-        if path == "Back" or path == "back": return
-        
+        if path == "Back" or path == "back":
+            return
+
         path = os.path.normpath(path)
         if system() != 'Windows':
             path = path.replace('\\', '')
@@ -90,10 +93,10 @@ def multisender(multi):
 def queuesend():
     print('Note: you must exit the GTS before sending each Pokemon')
     print('4th Gen Pokemon files are currently unsupported.\n')
-    
+
     qpoke = listdir('queue')
     qpokef = []
-    
+
     for qpokes in qpoke:
         qpokes = 'queue/%s' % qpokes
         if os.path.exists(qpokes) and qpokes.lower().endswith('.pkm'):
@@ -114,20 +117,21 @@ def queuesend():
 def customqueuesend():
     print('Note: you must exit the GTS before sending each Pokemon')
     print('4th Gen Pokemon files are currently unsupported.\n')
-    
+
     while True:
         print('Enter the path of the queue folder, then hit Enter')
         print('(Type Back to go back)')
         folder = input().strip()
         folder = os.path.normpath(folder)
-        
+
         if folder.startswith('"') or folder.startswith("'"):
             folder = folder[1:]
         if folder.endswith('"') or folder.endswith("'"):
             folder = folder[:-1]
 
-        if folder == "Back" or folder == "back": return
-        
+        if folder == "Back" or folder == "back":
+            return
+
         print('\n')
 
         if os.path.exists(folder) == False:
@@ -138,10 +142,11 @@ def customqueuesend():
 
     qpoke = listdir(folder)
     qpokesf = list()
-    
+
     for qpokes in qpoke:
         qpokes = '%s/%s' % (folder, qpokes)
-        if os.path.exists(qpokes) and qpokes.lower().endswith('.pkm'): qpokesf.append(qpokes)
+        if os.path.exists(qpokes) and qpokes.lower().endswith('.pkm'):
+            qpokesf.append(qpokes)
 
     qpokesfsize = len(qpokesf)
 
@@ -198,8 +203,10 @@ def sendingpkm(path):
     print('Adding GTS data... ', end=' ')
     bin += '\x00' * 16
     bin += pkm[0x08:0x0a] # id
-    if ord(pkm[0x40]) & 0x04: bin += '\x03' # Gender
-    else: bin += chr((ord(pkm[0x40]) & 2) + 1)
+    if ord(pkm[0x40]) & 0x04:
+        bin += '\x03' # Gender
+    else:
+        bin += chr((ord(pkm[0x40]) & 2) + 1)
     bin += pkm[0x8c] # Level
     bin += '\x01\x00\x03\x00\x00\x00\x00\x00' # Requesting bulba, either, any
     bin += '\xdb\x07\x03\x0a\x00\x00\x00\x00' # Date deposited (10 Mar 2011)
@@ -226,10 +233,14 @@ def sendingpkm(path):
         elif a == 'info':
             response = '\x01\x00'
             print('Connection established.')
-        elif a == 'setProfile': response = '\x00' * 8
-        elif a == 'post': response = '\x0c\x00'
-        elif a == 'search': response = '\x01\x00'
-        elif a == 'result': response = bin
+        elif a == 'setProfile':
+            response = '\x00' * 8
+        elif a == 'post':
+            response = '\x0c\x00'
+        elif a == 'search':
+            response = '\x01\x00'
+        elif a == 'result':
+            response = bin
         elif a == 'delete':
             response = '\x01\x00'
             sent = True

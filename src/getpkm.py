@@ -12,7 +12,8 @@ from sys import argv, exit
 from base64 import urlsafe_b64decode, urlsafe_b64encode
 from array import array
 from .stats import statread
-import os.path, subprocess, platform, hashlib, gtsvar
+from . import gtsvar
+import os.path, subprocess, platform, hashlib
 
 def makepkm(bytes):
     ar = array('B') # Byte array to hold encrypted data
@@ -61,10 +62,14 @@ def getpkm():
         elif a == 'info':
             response = '\x01\x00'
             print('Connection Established.')
-        elif a == 'setProfile': response = '\x00' * 8
-        elif a == 'result': response = '\x05\x00'
-        elif a == 'delete': response = '\x01\x00'
-        elif a == 'search': response = '\x01\x00'
+        elif a == 'setProfile':
+            response = '\x00' * 8
+        elif a == 'result':
+            response = '\x05\x00'
+        elif a == 'delete':
+            response = '\x01\x00'
+        elif a == 'search':
+            response = '\x01\x00'
         elif a == 'post':
             response = '\x0c\x00'
             print('Receiving Pokemon...')

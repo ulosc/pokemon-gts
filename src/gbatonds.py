@@ -129,24 +129,37 @@ def ivbytes(ivs, name):
 def genderbyte(species, pid):
     gid = ord(pid[0])
     genratio = gender.get(species)
-    if genratio == 'Genderless': return 4
-    elif genratio == '0 %': return 2
+    if genratio == 'Genderless':
+        return 4
+    elif genratio == '0 %':
+        return 2
     elif genratio == '12.5 %':
-        if gid < 223: return 2
-        else: return 0
+        if gid < 223:
+            return 2
+        else:
+            return 0
     elif genratio == '25 %':
-        if gid < 191: return 2
-        else: return 0
+        if gid < 191:
+            return 2
+        else:
+            return 0
     elif genratio == '50 %':
-        if gid < 127: return 2
-        else: return 0
+        if gid < 127:
+            return 2
+        else:
+            return 0
     elif genratio == '75 %':
-        if gid < 63: return 2
-        else: return 0
+        if gid < 63:
+            return 2
+        else:
+            return 0
     elif genratio == '87.5 %':
-        if gid < 31: return 2
-        else: return 0
-    elif genratio == '100 %': return 0
+        if gid < 31:
+            return 2
+        else:
+            return 0
+    elif genratio == '100 %':
+        return 0
 
 def form(id, gend, pid):
     if id == 201:
@@ -1443,8 +1456,9 @@ def attainpkm():
     while True:
         path = input().strip()
 
-        if path == "Back" or path == "back": return
-        
+        if path == "Back" or path == "back":
+            return
+
         path = os.path.normpath(path)
         if system() != 'Windows':
             path = path.replace('\\', '')
@@ -1453,7 +1467,8 @@ def attainpkm():
             path = path[1:]
         if path.endswith('"') or path.endswith("'"):
             path = path[:-1]
-        if os.path.exists(path) and path.lower().endswith('.pkm'): break
+        if os.path.exists(path) and path.lower().endswith('.pkm'):
+            break
         else:
             print('Invalid file name, try again')
             continue
@@ -1464,11 +1479,9 @@ def attainpkm():
     return pkm
 
 def threetofour():
-    
+
     pkm = attainpkm()
 
-    
-    
     pkm = makends(pkm)
 
     with open('test.pkm', 'wb') as f:
@@ -1480,6 +1493,7 @@ def fourtofive():
     hl = pkm[0x80:0x82]
     pid = pkm[0x00:0x04]
 
-    if hl == 30001 and ord(pkm[0x41]) == (pid % 25): return pkm
+    if hl == 30001 and ord(pkm[0x41]) == (pid % 25):
+        return pkm
 
 #def threetofive():

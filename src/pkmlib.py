@@ -12,35 +12,41 @@ class makerand:
     self.rngseed&=0xFFFFFFFF
     return self.rngseed>>16
   __call__=rand
-  
+
 
 def encode(pkm):
   s=list(struct.unpack("IHH"+"H"*(len(pkm)/2-4), pkm))
   shift=((s[0]>>0xD & 0x1F) %24)
   order=[ord(i) for i in shiftind[4*shift:4*shift+4]]
   shifted=s[:3]
-  for i in order: shifted+=s[3+16*i:19+16*i]
+  for i in order:
+      shifted+=s[3+16*i:19+16*i]
   shifted+=s[67:]
 
   rand=makerand(s[2])
-  for i in range(3, 67): shifted[i]^=rand()
+  for i in range(3, 67):
+      shifted[i]^=rand()
   if len(shifted)>67:
     rand=makerand(shifted[0])
-    for i in range(67, len(shifted)): shifted[i]^=rand()
+    for i in range(67, len(shifted)):
+        shifted[i]^=rand()
   return struct.pack("IHH"+"H"*(len(pkm)/2-4), *shifted)
 
 
 def decode(bin):
   shifted=list(struct.unpack("IHH"+"H"*(len(bin)/2-4), bin))
   rand=makerand(shifted[2])
-  for i in range(3, 67): shifted[i]^=rand()
+  for i in range(3, 67):
+      shifted[i]^=rand()
   if len(shifted)>67:
     rand=makerand(shifted[0])
-    for i in range(67, len(shifted)): shifted[i]^=rand()
-  
+    for i in range(67, len(shifted)):
+        shifted[i]^=rand()
+
   shift=((shifted[0]>>0xD & 0x1F) %24)
   order=[ord(i) for i in shiftind[4*shift:4*shift+4]]
   s=shifted[:3]
-  for i in range(4): s+=shifted[3+16*order.index(i):19+16*order.index(i)]
+  for i in range(4):
+      s+=shifted[3+16*order.index(i):19+16*order.index(i)]
   s+=shifted[67:]
   return struct.pack("IHH"+"H"*(len(bin)/2-4), *s)
