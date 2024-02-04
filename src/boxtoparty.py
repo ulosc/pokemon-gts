@@ -11,7 +11,7 @@ pkm = None
 def makeparty(p):
     global pkm
     pkm = array('B')
-    pkm.fromstring(p)
+    pkm.frombytes(p)
 
     lv = __level()
     id = pkm[0x08] + (pkm[0x09] << 8)

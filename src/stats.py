@@ -8,7 +8,7 @@ import os, struct, sys
 
 def statread(pkm, path):
     p = array('B')
-    p.fromstring(pkm)
+    p.frombytes(pkm)
 
     s = statsetup(p, pkm, path)
     s += '\n'
@@ -52,7 +52,7 @@ def statana():
         pkm = makeparty(pkm)
         print('Done.')
     p = array('B')
-    p.fromstring(pkm)
+    p.frombytes(pkm)
 
     s = statsetup(p, pkm, path)
 

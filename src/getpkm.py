@@ -17,7 +17,7 @@ import os.path, subprocess, platform, hashlib
 
 def makepkm(bytes):
     ar = array('B') # Byte array to hold encrypted data
-    ar.fromstring(bytes)
+    ar.frombytes(bytes)
 
     ar = ar[12:232].tostring()
     pkm = decode(ar)

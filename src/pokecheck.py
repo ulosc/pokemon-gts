@@ -41,7 +41,7 @@ def pcsearch():
         pkm = makeparty(pkm)
         print('Done.')
     p = array('B')
-    p.fromstring(pkm)
+    p.frombytes(pkm)
 
     pid = hex(struct.unpack('<0s4L', open(path, 'rb').read(16))[1])[:-1]
     lvl = str(p[0x8c])

@@ -95,7 +95,7 @@ def makends(gba):
 
 def convertname(n):
     bytes = array('B')
-    bytes.fromstring(n)
+    bytes.frombytes(n)
     converted = ''
 
     for val in bytes:
@@ -180,7 +180,7 @@ def datemet():
 
 def getsum(pkm):
     ar = array('H')
-    ar.fromstring(pkm)
+    ar.frombytes(pkm)
     sum = 0
     for val in ar:
         sum += val
