@@ -7,10 +7,7 @@ from datetime import datetime
 import os, struct, sys
 
 def statread(pkm, path):
-    p = array('B')
-    p.frombytes(pkm)
-
-    s = statsetup(p, pkm, path)
+    s = statsetup(pkm, path)
     s += '\n'
     s += '=' * 80 + '\n\n'
 
@@ -51,10 +48,8 @@ def statana():
         print('Pokemon is in PC format; adding party information now... ', end=' ')
         pkm = makeparty(pkm)
         print('Done.')
-    p = array('B')
-    p.frombytes(pkm)
 
-    s = statsetup(p, pkm, path)
+    s = statsetup(pkm, path)
 
     print('\nBeginning analysis:\n')
     print(s)
@@ -74,7 +69,7 @@ def statana():
         print("File's checksum is incorrect(%s), should be %s." % (fcsum, calcsum))
         print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
 
-    b = (p[0x38:0x3c])
+    b = (pkm[0x38:0x3c])
     ivs = b[0] + (b[1] << 8) + (b[2] << 16) + (b[3] << 24)
     hp =  (ivs & 0x0000001f)
     atk = (ivs & 0x000003e0) >> 5
@@ -90,7 +85,7 @@ def statana():
         print("IVs are too high, none can exceed 31.")
         print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
 
-    evs = p[0x18:0x1e]
+    evs = pkm[0x18:0x1e]
     total = evs[0] + evs[1] + evs[2] + evs[3] + evs[4] + evs[5]
     if total == 508:
         print("\n! Total EVs exactly 508. !")
@@ -102,16 +97,16 @@ def statana():
         print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
 
 
-    if p[0x40] & 4:
+    if pkm[0x40] & 4:
         gender = 0 #Genderless
-    elif p[0x40] & 2:
+    elif pkm[0x40] & 2:
         gender = 1 #Female
     else:
         gender = 2 #Male
 
     pid = struct.unpack('<0s4L', open(path, 'rb').read(16))[1]
 
-    rgender = p[0x00]
+    rgender = pkm[0x00]
     if rgender <= 128:
         cgender = 1 #Female
     if rgender >= 128:
@@ -125,16 +120,16 @@ def statana():
         print("\n! Probably male, check gender ratio (file's ratio is %d%%). !" % (genratio))
 
 
-    if p[0x5f] == 0:
+    if pkm[0x5f] == 0:
         print('\n!!!!!!!!!!!!!!!!!!!!!!!')
         print('Game of origin not set.')
         print('!!!!!!!!!!!!!!!!!!!!!!!')
-    elif p[0x5f] == 24 or p[0x5f] == 25:
+    elif pkm[0x5f] == 24 or pkm[0x5f] == 25:
         print('\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
         print('Game of origin too new (X/Y gen 6).')
         print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
 
-    secid = (p[0x0f] << 8) + p[0x0e]
+    secid = (pkm[0x0f] << 8) + pkm[0x0e]
     if secid == 0:
         print("\n!!!!! Secret ID is 0 (could be an event). !!!!!")
 
@@ -143,51 +138,51 @@ def statana():
 
     print('\n')
 
-def statsetup(p, pkm, path):
-    pid = p[0x00] + (p[0x01] << 8) + (p[0x02] << 16) + (p[0x03] << 24)
+def statsetup(pkm, path):
+    pid = pkm[0x00] + (pkm[0x01] << 8) + (pkm[0x02] << 16) + (pkm[0x03] << 24)
     nickname = ''
-    if p[0x49] != 0:
+    if pkm[0x49] != 0:
         nickname = 'Invalid nickname'
     else:
         for i in pkm[0x48:0x5e]:
-            if i == '\xff':
+            if i == 255:
                 break
-            if i != '\x00':
-                nickname += i
-    lv = p[0x8c]
-    nat = natget(ord(pkm[0x41]))
-    spec = specget((p[0x09] << 8) + p[0x08])
-    dwabil = '(hidden/DW ability) ' if p[0x42] == 1 else ''
-    abil = abiget(p[0x15])
-    if p[0x40] & 4:
+            if i != 0:
+                nickname += chr(i)
+    lv = pkm[0x8c]
+    nat = natget(pkm[0x41])
+    spec = specget((pkm[0x09] << 8) + pkm[0x08])
+    dwabil = '(hidden/DW ability) ' if pkm[0x42] == 1 else ''
+    abil = abiget(pkm[0x15])
+    if pkm[0x40] & 4:
         gender = '(Genderless)'
-    elif p[0x40] & 2:
+    elif pkm[0x40] & 2:
         gender = '(Female)'
     else:
         gender = '(Male)'
     otname = ''
-    if p[0x69] != 0:
+    if pkm[0x69] != 0:
         otname = 'TRAINER'
     else:
         for i in pkm[0x68:0x78]:
-            if i == '\xff':
+            if i == 255:
                 break
-            if i != '\x00':
-                otname += i
-    otid = (p[0x0d] << 8) + p[0x0c]
-    secid = (p[0x0f] << 8) + p[0x0e]
-    held = heldget((p[0x0b] << 8) + p[0x0a])
-    ivs = ivcheck(p[0x38:0x3c])
-    evs = evcheck(p[0x18:0x1e])
-    atk = attackcheck(p[0x28:0x30])
+            if i != 0:
+                otname += chr(i)
+    otid = (pkm[0x0d] << 8) + pkm[0x0c]
+    secid = (pkm[0x0f] << 8) + pkm[0x0e]
+    held = heldget((pkm[0x0b] << 8) + pkm[0x0a])
+    ivs = ivcheck(pkm[0x38:0x3c])
+    evs = evcheck(pkm[0x18:0x1e])
+    atk = attackcheck(pkm[0x28:0x30])
     hidden = hiddenpower(ivs)
-    happy = p[0x14]
+    happy = pkm[0x14]
     shiny = shinycheck(pid, otid, secid)
     if shiny:
         shiny = 'SHINY'
     else:
         shiny = ''
-    origin = gorget(p[0x5f])
+    origin = gorget(pkm[0x5f])
     timetaken = str(datetime.now())[:-7]
 
     s = '"%s" (%s from %s)\n    ' % (nickname, timetaken, path)
