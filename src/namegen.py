@@ -379,7 +379,7 @@ tsu = {
 
 def namegen(namebytes):
     arr = array('B')
-    arr.fromstring(namebytes)
+    arr.frombytes(namebytes)
     name = ''
     skip = False
     for i in range(0, len(arr), 2):

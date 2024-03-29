@@ -1,29 +1,26 @@
 from array import array
-from namegen import namegen
-from boxtoparty import makeparty, ivcheck, evcheck
-from data import *
+from .namegen import namegen
+from .boxtoparty import makeparty, ivcheck, evcheck
+from .data import *
 from platform import system
 from datetime import datetime
 import os, struct, sys
 
 def statread(pkm, path):
-    p = array('B')
-    p.fromstring(pkm)
-
-    s = statsetup(p, pkm, path)
+    s = statsetup(pkm, path)
     s += '\n'
     s += '=' * 80 + '\n\n'
 
-    print 'Writing stats to statlog.txt... '
+    print('Writing stats to statlog.txt... ')
     with open('statlog.txt', 'a') as f:
         f.write(s)
-    print 'Done.'
+    print('Done.')
 
 def statana():
     while True:
-        print 'Enter .PKM file path'
-        print '(Type Back to go back)'
-        path = raw_input().strip()
+        print('Enter .PKM file path')
+        print('(Type Back to go back)')
+        path = input().strip()
 
         if path == 'Back' or path == 'back':
             return
@@ -35,29 +32,28 @@ def statana():
             path = path[1:]
         if path.endswith('"') or path.endswith("'"):
             path = path[:-1]
-        if os.path.exists(path) and path.lower().endswith('.pkm'): break
+        if os.path.exists(path) and path.lower().endswith('.pkm'):
+            break
         else:
-            print 'Invalid file name, try again'
+            print('Invalid file name, try again')
             continue
-        
+
     with open(path, 'rb') as f:
         pkm = f.read()
 
     if len(pkm) != 220 and len(pkm) != 136:
-        print 'Invalid filesize: %d bytes. Needs to be either 136 or 220 bytes.' % len(pkm)
+        print('Invalid filesize: %d bytes. Needs to be either 136 or 220 bytes.' % len(pkm))
         return
     if len(pkm) == 136:
-        print 'Pokemon is in PC format; adding party information now... ',
+        print('Pokemon is in PC format; adding party information now... ', end=' ')
         pkm = makeparty(pkm)
-        print 'Done.'
-    p = array('B')
-    p.fromstring(pkm)
-    
-    s = statsetup(p, pkm, path)
+        print('Done.')
 
-    print '\nBeginning analysis:\n'
-    print s
-	
+    s = statsetup(pkm, path)
+
+    print('\nBeginning analysis:\n')
+    print(s)
+
     csum = struct.unpack('<6s1H', open(path, 'rb').read(8))[1]
     fcsum = struct.unpack(">I", struct.pack("<I", csum))[0]
     fcsum = ("%02x" % fcsum)[:-4]
@@ -69,11 +65,11 @@ def statana():
     calcsum = ("%02x" % bigesum)[:-4]
 
     if lilesum != csum:
-    	print "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
-	print "File's checksum is incorrect(%s), should be %s." % (fcsum, calcsum)
-	print "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+        print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+        print("File's checksum is incorrect(%s), should be %s." % (fcsum, calcsum))
+        print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
 
-    b = (p[0x38:0x3c])
+    b = (pkm[0x38:0x3c])
     ivs = b[0] + (b[1] << 8) + (b[2] << 16) + (b[3] << 24)
     hp =  (ivs & 0x0000001f)
     atk = (ivs & 0x000003e0) >> 5
@@ -83,102 +79,110 @@ def statana():
     spd = (ivs & 0x3e000000) >> 25
     total = hp + atk + df + spe + spa + spd
     if total == 186:
-	print "\n! IVs are perfect, could be RNG abused or hacked. !"
+        print("\n! IVs are perfect, could be RNG abused or hacked. !")
     elif total >= 187:
-        print "\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
-	print "IVs are too high, none can exceed 31."
-	print "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+        print("\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+        print("IVs are too high, none can exceed 31.")
+        print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
 
-    evs = p[0x18:0x1e]
+    evs = pkm[0x18:0x1e]
     total = evs[0] + evs[1] + evs[2] + evs[3] + evs[4] + evs[5]
     if total == 508:
-	print "\n! Total EVs exactly 508. !"
+        print("\n! Total EVs exactly 508. !")
     elif total == 510:
-    	print "\n! Total EVs exactly 510. !"
+        print("\n! Total EVs exactly 510. !")
     elif total >= 511:
-	print "\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
-	print "Total EVs over 510, too high."
-	print "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+        print("\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+        print("Total EVs over 510, too high.")
+        print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
 
 
-    if p[0x40] & 4:
-    	gender = 0 #Genderless
-    elif p[0x40] & 2:
-	gender = 1 #Female
-    else: gender = 2 #Male
+    if pkm[0x40] & 4:
+        gender = 0 #Genderless
+    elif pkm[0x40] & 2:
+        gender = 1 #Female
+    else:
+        gender = 2 #Male
 
     pid = struct.unpack('<0s4L', open(path, 'rb').read(16))[1]
 
-    rgender = p[0x00]
+    rgender = pkm[0x00]
     if rgender <= 128:
-	cgender = 1 #Female
+        cgender = 1 #Female
     if rgender >= 128:
-	cgender = 2 #Male
+        cgender = 2 #Male
 
     genratio = rgender / 2.56
 
     if gender != cgender and gender == 1:
-	print "\n! Probably female, check gender ratio (file's ratio is %d%%). !" % (genratio)
+        print("\n! Probably female, check gender ratio (file's ratio is %d%%). !" % (genratio))
     if gender != cgender and gender == 2:
-	print "\n! Probably male, check gender ratio (file's ratio is %d%%). !" % (genratio)
+        print("\n! Probably male, check gender ratio (file's ratio is %d%%). !" % (genratio))
 
 
-    if p[0x5f] == 0:
-    	print '\n!!!!!!!!!!!!!!!!!!!!!!!'
-	print 'Game of origin not set.'
-	print '!!!!!!!!!!!!!!!!!!!!!!!'
-    elif p[0x5f] == 24 or p[0x5f] == 25:
-        print '\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!'
-        print 'Game of origin too new (X/Y gen 6).'
-        print '!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!'
+    if pkm[0x5f] == 0:
+        print('\n!!!!!!!!!!!!!!!!!!!!!!!')
+        print('Game of origin not set.')
+        print('!!!!!!!!!!!!!!!!!!!!!!!')
+    elif pkm[0x5f] == 24 or pkm[0x5f] == 25:
+        print('\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+        print('Game of origin too new (X/Y gen 6).')
+        print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
 
-    secid = (p[0x0f] << 8) + p[0x0e]
-    if secid == 0: print "\n!!!!! Secret ID is 0 (could be an event). !!!!!"
+    secid = (pkm[0x0f] << 8) + pkm[0x0e]
+    if secid == 0:
+        print("\n!!!!! Secret ID is 0 (could be an event). !!!!!")
 
-    print '\n========End of analysis========\n'
-	
+    print('\n========End of analysis========\n')
     statread(pkm, path)
 
-    print '\n'
+    print('\n')
 
-def statsetup(p, pkm, path):
-    pid = p[0x00] + (p[0x01] << 8) + (p[0x02] << 16) + (p[0x03] << 24)
+def statsetup(pkm, path):
+    pid = pkm[0x00] + (pkm[0x01] << 8) + (pkm[0x02] << 16) + (pkm[0x03] << 24)
     nickname = ''
-    if p[0x49] != 0:
+    if pkm[0x49] != 0:
         nickname = 'Invalid nickname'
     else:
         for i in pkm[0x48:0x5e]:
-            if i == '\xff': break
-            if i != '\x00': nickname += i
-    lv = p[0x8c]
-    nat = natget(ord(pkm[0x41]))
-    spec = specget((p[0x09] << 8) + p[0x08])
-    dwabil = '(hidden/DW ability) ' if p[0x42] == 1 else ''
-    abil = abiget(p[0x15])
-    if p[0x40] & 4:
+            if i == 255:
+                break
+            if i != 0:
+                nickname += chr(i)
+    lv = pkm[0x8c]
+    nat = natget(pkm[0x41])
+    spec = specget((pkm[0x09] << 8) + pkm[0x08])
+    dwabil = '(hidden/DW ability) ' if pkm[0x42] == 1 else ''
+    abil = abiget(pkm[0x15])
+    if pkm[0x40] & 4:
         gender = '(Genderless)'
-    elif p[0x40] & 2:
+    elif pkm[0x40] & 2:
         gender = '(Female)'
-    else: gender = '(Male)'
+    else:
+        gender = '(Male)'
     otname = ''
-    if p[0x69] != 0:
+    if pkm[0x69] != 0:
         otname = 'TRAINER'
     else:
         for i in pkm[0x68:0x78]:
-            if i == '\xff': break
-            if i != '\x00': otname += i
-    otid = (p[0x0d] << 8) + p[0x0c]
-    secid = (p[0x0f] << 8) + p[0x0e]
-    held = heldget((p[0x0b] << 8) + p[0x0a])
-    ivs = ivcheck(p[0x38:0x3c])
-    evs = evcheck(p[0x18:0x1e])
-    atk = attackcheck(p[0x28:0x30])
+            if i == 255:
+                break
+            if i != 0:
+                otname += chr(i)
+    otid = (pkm[0x0d] << 8) + pkm[0x0c]
+    secid = (pkm[0x0f] << 8) + pkm[0x0e]
+    held = heldget((pkm[0x0b] << 8) + pkm[0x0a])
+    ivs = ivcheck(pkm[0x38:0x3c])
+    evs = evcheck(pkm[0x18:0x1e])
+    atk = attackcheck(pkm[0x28:0x30])
     hidden = hiddenpower(ivs)
-    happy = p[0x14]
+    happy = pkm[0x14]
     shiny = shinycheck(pid, otid, secid)
-    if shiny: shiny = 'SHINY'
-    else: shiny = ''
-    origin = gorget(p[0x5f])
+    if shiny:
+        shiny = 'SHINY'
+    else:
+        shiny = ''
+    origin = gorget(pkm[0x5f])
     timetaken = str(datetime.now())[:-7]
 
     s = '"%s" (%s from %s)\n    ' % (nickname, timetaken, path)

@@ -6,17 +6,18 @@
 #
 # --Infinite Recursion
 
-from pokehaxlib import *
-from pkmlib import decode
+from .pokehaxlib import *
+from .pkmlib import decode
 from sys import argv, exit
 from base64 import urlsafe_b64decode, urlsafe_b64encode
 from array import array
-from stats import statread
-import os.path, subprocess, platform, hashlib, gtsvar
+from .stats import statread
+from . import gtsvar
+import os.path, subprocess, platform, hashlib
 
 def makepkm(bytes):
     ar = array('B') # Byte array to hold encrypted data
-    ar.fromstring(bytes)
+    ar.frombytes(bytes)
 
     ar = ar[12:232].tostring()
     pkm = decode(ar)
@@ -30,13 +31,13 @@ def save(path, data):
         fullpath = os.path.normpath('Pokemon' + os.sep + path)
         saved = True
         if os.path.isfile(fullpath):
-            print '%s already exists! Delete?' % path
-            response = raw_input().lower()
+            print('%s already exists! Delete?' % path)
+            response = input().lower()
             if response != 'y' and response != 'yes':
-                print 'Enter new filename: (press enter to cancel save) '
-                path = raw_input()
+                print('Enter new filename: (press enter to cancel save) ')
+                path = input()
                 if path == '':
-                    print 'Not saved.',
+                    print('Not saved.', end=' ')
                     return
                 if not path.strip().lower().endswith('.pkm'):
                     path += '.pkm'
@@ -45,12 +46,12 @@ def save(path, data):
     with open(fullpath, 'wb') as f:
         f.write(data)
 
-    print '%s saved successfully.\nYou should have received error 13266.' % path,
+    print('%s saved successfully.\nYou should have received error 13266.' % path, end=' ')
 
 def getpkm():
     sent = False
     response = ''
-    print 'Ready to receive from game.'
+    print('Ready to receive from game.')
     while not sent:
         sock, req = getReq()
         a = req.action
@@ -60,21 +61,25 @@ def getpkm():
             continue
         elif a == 'info':
             response = '\x01\x00'
-            print 'Connection Established.'
-        elif a == 'setProfile': response = '\x00' * 8
-        elif a == 'result': response = '\x05\x00'
-        elif a == 'delete': response = '\x01\x00'
-        elif a == 'search': response = '\x01\x00'
+            print('Connection Established.')
+        elif a == 'setProfile':
+            response = '\x00' * 8
+        elif a == 'result':
+            response = '\x05\x00'
+        elif a == 'delete':
+            response = '\x01\x00'
+        elif a == 'search':
+            response = '\x01\x00'
         elif a == 'post':
             response = '\x0c\x00'
-            print 'Receiving Pokemon...'
+            print('Receiving Pokemon...')
             data = req.getvars['data']
             bytes = urlsafe_b64decode(data)
             decrypt = makepkm(bytes)
             filename = ''
             if decrypt[0x49] != '\x00':
                 pid = 0
-                for i in xrange(0, 4):
+                for i in range(0, 4):
                     pid += ord(decrypt[i]) << (i * 8)
                 filename = str(pid)
             else:

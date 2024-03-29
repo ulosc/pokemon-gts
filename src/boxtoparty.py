@@ -2,7 +2,7 @@
 # the DS. This should properly generate the battle stats so it can be read
 # by the games.
 
-from __future__ import division
+
 from array import array
 #from stats import ivcheck, evcheck
 
@@ -11,7 +11,7 @@ pkm = None
 def makeparty(p):
     global pkm
     pkm = array('B')
-    pkm.fromstring(p)
+    pkm.frombytes(p)
 
     lv = __level()
     id = pkm[0x08] + (pkm[0x09] << 8)
@@ -46,7 +46,7 @@ def __level():
     exp = pkm[0x10] + (pkm[0x11] << 8) + (pkm[0x12] << 16)
     id = pkm[0x08] + (pkm[0x09] << 8)
     exptype = pokestats.get(id)[0]
-    for i in xrange(100):
+    for i in range(100):
         xpneeded = lvlexp.get(i + 1)[exptype]
         if xpneeded > exp:
             return i
