@@ -201,23 +201,23 @@ def sendingpkm(path):
 
     # Adding GTS data to end of file
     print('Adding GTS data... ', end=' ')
-    bin += '\x00' * 16
+    bin += b'\x00' * 16
     bin += pkm[0x08:0x0a] # id
-    if ord(pkm[0x40]) & 0x04:
-        bin += '\x03' # Gender
+    if pkm[0x40] & 0x04:
+        bin += b'\x03' # Gender
     else:
-        bin += chr((ord(pkm[0x40]) & 2) + 1)
-    bin += pkm[0x8c] # Level
-    bin += '\x01\x00\x03\x00\x00\x00\x00\x00' # Requesting bulba, either, any
-    bin += '\xdb\x07\x03\x0a\x00\x00\x00\x00' # Date deposited (10 Mar 2011)
-    bin += '\xdb\x07\x03\x16\x01\x30\x00\x00' # Date traded (?)
+        bin += chr(pkm[0x40] & 2 + 1)
+    bin += pkm[0x8c:0x8c+1] # Level
+    bin += b'\x01\x00\x03\x00\x00\x00\x00\x00' # Requesting bulba, either, any
+    bin += b'\xdb\x07\x03\x0a\x00\x00\x00\x00' # Date deposited (10 Mar 2011)
+    bin += b'\xdb\x07\x03\x16\x01\x30\x00\x00' # Date traded (?)
     bin += pkm[0x00:0x04] # PID
     bin += pkm[0x0c:0x0e] # OT ID
     bin += pkm[0x0e:0x10] # OT Secret ID
     bin += pkm[0x68:0x78] # OT Name
-    bin += '\xDB\x02' # Country, City
-    bin += '\x46\x01\x15\x02' # Sprite, Exchanged (?), Version, Lang
-    bin += '\x01\x00' # Unknown
+    bin += b'\xDB\x02' # Country, City
+    bin += b'\x46\x01\x15\x02' # Sprite, Exchanged (?), Version, Lang
+    bin += b'\x01\x00' # Unknown
     print('Done.')
 
     sent = False
@@ -231,23 +231,23 @@ def sendingpkm(path):
             sendResp(sock, gtsvar.token)
             continue
         elif a == 'info':
-            response = '\x01\x00'
+            response = b'\x01\x00'
             print('Connection established.')
         elif a == 'setProfile':
-            response = '\x00' * 8
+            response = b'\x00' * 8
         elif a == 'post':
-            response = '\x0c\x00'
+            response = b'\x0c\x00'
         elif a == 'search':
-            response = '\x01\x00'
+            response = b'\x01\x00'
         elif a == 'result':
             response = bin
         elif a == 'delete':
-            response = '\x01\x00'
+            response = b'\x01\x00'
             sent = True
 
         m = hashlib.sha1()
-        m.update(gtsvar.salt + urlsafe_b64encode(response) + gtsvar.salt)
-        response += m.hexdigest()
+        m.update(gtsvar.salt.encode() + urlsafe_b64encode(response) + gtsvar.salt.encode())
+        response += m.hexdigest().encode()
         sendResp(sock, response)
 
     print('Pokemon sent successfully.\n', end=' ')
