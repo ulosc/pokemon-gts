@@ -1,5 +1,4 @@
 from array import array
-from .namegen import namegen
 from .boxtoparty import makeparty, ivcheck, evcheck
 from .data import *
 from platform import system
