@@ -21,13 +21,13 @@
 #
 # ~ ThyImortalGamer
 
-from src import gtsvar
-from src.pokehaxlib import initServ
-from src.getpkm import getpkm
-from src.sendpkm import sendpkm, multisend, queuesend, customqueuesend
-from src.stats import statana
-from src.gbatonds import threetofour
-from src.util import clear, cleanexit
+from utils import gtsvar
+from utils.pokehaxlib import initServ
+from utils.getpkm import getpkm
+from utils.sendpkm import sendpkm, multisend, queuesend, customqueuesend
+from utils.stats import statana
+from utils.gbatonds import threetofour
+from utils.util import clear, cleanexit
 from platform import system
 from sys import argv, exit
 from time import sleep
