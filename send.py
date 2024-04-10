@@ -88,7 +88,4 @@ if __name__ == "__main__":
     parser.add_argument('pkm_file', metavar='pkm-file', type=str)
     args = parser.parse_args()
 
-    if os.geteuid() != 0:
-        raise PermissionError('Run as root.')
-
     main(args.pkm_file)
