@@ -1,4 +1,12 @@
-import socket, sys, time, _thread
+import socket
+import hashlib
+import time
+from base64 import urlsafe_b64encode
+from pathlib import Path
+
+from . import gts
+from .boxtoparty import makeparty
+from .pkmlib import encode
 
 
 class Request:
@@ -30,8 +38,6 @@ class Request:
 
 
 class Response:
-    pokes=None
-    resps=None
     def __init__(self, h):
         self.is_pkm_data = False
         if isinstance(h, bytes):
@@ -50,15 +56,15 @@ class Response:
             if not line:
                 break
             elif line.startswith("P3P"):
-                self.p3p=line[line.find(": ")+2:] #I don't know what this is
+                self.p3p=line[line.find(": ")+2:] # unknown
             elif line.startswith("cluster-server"):
-                self.server=line[line.find(": ")+2:] #for fun
+                self.server=line[line.find(": ")+2:] # unknown
             elif line.startswith("X-Server-"):
-                self.sname=line[line.find(": ")+2:] #for fun
+                self.sname=line[line.find(": ")+2:] # unknown
             elif line.startswith("Content-Length"):
-                self.len=int(line[line.find(": ")+2:]) #need
+                self.len=int(line[line.find(": ")+2:]) # necessary
             elif line.startswith("Set-Cookie"):
-                self.cookie=line[line.find(": ")+2:] #don't need
+                self.cookie=line[line.find(": ")+2:] # unnecessary
         self.data="\r\n".join(h)
 
     def get_bytes(self):
@@ -88,89 +94,91 @@ class Response:
         else:
             return str_repr.encode() + self.data.encode()
 
-    def getpkm(self):
-        all=[]
-        data=self.data
-        while data:
-            result=data[:292]; data=data[292:]
-            all.append(result[:136])
-        return all
+
+def encode_pkm(pkm_path: Path) -> tuple[bytes, bytes]:
+    with open(pkm_path, 'rb') as f:
+        pkm = f.read()
+    assert len(pkm) in [136, 220]
+    if len(pkm) == 136:
+        pkm = makeparty(pkm)
+    encoded_pkm = encode(pkm)
+    encoded_pkm += b'\x00' * 16
+    encoded_pkm += pkm[0x08:0x0a]  # ID
+    if pkm[0x40] & 0x04:
+        encoded_pkm += b'\x03'  # gender
+    else:
+        encoded_pkm += (pkm[0x40] & 2 + 1).to_bytes()
+    encoded_pkm += pkm[0x8c:0x8c+1]  # level
+    # request フシギダネ with either gender at any level
+    encoded_pkm += b'\x01\x00\x03\x00\x00\x00\x00\x00'
+    encoded_pkm += b'\xdb\x07\x03\x0a\x00\x00\x00\x00'  # date deposited as 3/10/2011
+    encoded_pkm += b'\xdb\x07\x03\x16\x01\x30\x00\x00'  # date traded
+    encoded_pkm += pkm[0x00:0x04]  # PID
+    encoded_pkm += pkm[0x0c:0x0e]  # original trainer ID
+    encoded_pkm += pkm[0x0e:0x10]  # original trainer SID
+    encoded_pkm += pkm[0x68:0x78]  # original trainer Name
+    encoded_pkm += b'\xDB\x02'  # country, city
+    encoded_pkm += b'\x46\x01\x15\x02'  # sprite, exchanged, version, language
+    encoded_pkm += b'\x01\x00'
+    return pkm, encoded_pkm
 
 
-def dnsspoof():
-    s=socket.socket(); s.connect(("178.62.43.212", 53));
-    me = [x for x in s.getsockname()[0].split('.')]
-    print("Please set your DS's DNS server to", s.getsockname()[0])
-    dnsserv=socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    dnsserv.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    dnsserv.bind(("0.0.0.0", 53))
-    while True:
-        r=dnsserv.recvfrom(512)
-        s=socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        s.connect(('178.62.43.212', 53))
-        s.send(r[0])
-        rr=s.recv(512)
-        if b'gamestats2' in rr:
-            rr = rr[:-4] + int(me[0]).to_bytes() + int(me[1]).to_bytes() + int(me[2]).to_bytes() + int(me[3]).to_bytes()
-        dnsserv.sendto(rr, r[1])
+def encode_response(data: bytes, encoded_pkm: bytes) -> tuple[bytes, bool]:
+    is_sent = False
+    request = Request(data)
+    action = request.action
+    if len(request.getvars) == 1:
+        response = gts.token
+    else:
+        if action == 'info':
+            response = b'\x01\x00'
+            print('Connection established')
+        elif action == 'setProfile':
+            response = b'\x00' * 8
+        elif action == 'post':
+            response = b'\x0c\x00'
+        elif action == 'search':
+            response = b'\x01\x00'
+        elif action == 'result':
+            response = encoded_pkm
+        elif action == 'delete':
+            response = b'\x01\x00'
+            is_sent = True
+        m = hashlib.sha1()
+        m.update(
+            gts.salt.encode() + urlsafe_b64encode(response) + gts.salt.encode()
+        )
+        response += m.hexdigest().encode()
+    response = Response(response).get_bytes()
+    return response, is_sent
 
 
-serv=None
-log=None
-def initServ(logfile=None):
-    global serv, log
-    _thread.start_new_thread(dnsspoof, ())
-    serv=socket.socket()
-    serv.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    serv.bind(("0.0.0.0", 80))
-    serv.listen(5)
-    if logfile:
-        log=open(logfile, 'w')
+def connect(address: str, port: int) -> tuple[str, int]:
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.connect((address, port))
+        connection_address, connection_port = s.getsockname()
+    return connection_address, connection_port
 
 
-def getReq():
-    global serv, log
-    sock, addr = serv.accept()
-    sock.settimeout(2)
-    data = b''
-    while True:
-        try:
-            a=sock.recv(500)
-            data += a
-        except socket.timeout:
-            break
-    ans=Request(data)
-    if log:
-        log.write(data+"\ndone---done\n")
-    #print addr, " requested ",  repr(ans)
-    return sock, ans
-
-
-def sendResp(sock, data):
-    global serv, log
-    resp=Response(data) if not isinstance(data, Response) else data
-    if log:
-        log.write(str(resp)+"\ndone---done\n")
-    sock.send(resp.get_bytes())
-    sock.shutdown(2)
-    return
-
-
-def respFromServ(req):
-    s=socket.socket()
-    #s.connect(("gamestats2.gs.nintendowifi.net", 80))
-    s.connect(("207.38.11.146", 80))
-    s.send(str(req).encode())
-    data = b''
-    while True:
-        a=s.recv(500)
-        if not a:
-            break
-        data += a
-    return Response(data)
-
-
-def serverResp():
-    sock, req=getReq()
-    resp=respFromServ(req)
-    sendResp(sock, resp)
+def spoof_dns(gts_dns_address: str = gts.DNS, gts_dns_port: int = 53) -> None:
+    gts_connection_address, gts_connection_port = connect(gts_dns_address, gts_dns_port)
+    print(f'Set DNS on DS to {gts_connection_address}')
+    with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as server_socket:
+        server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        server_socket.bind(('0.0.0.0', gts_dns_port))
+        while True:
+            # receive from ds
+            ds_response_bytes, ds_response_address = server_socket.recvfrom(512)
+            with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as client_socket:
+                # connect to gts
+                client_socket.connect((gts_dns_address, gts_dns_port))
+                # send to gts
+                client_socket.send(ds_response_bytes)
+                # receive from gts
+                gts_response_bytes = client_socket.recv(512)
+                if b'gamestats2' in gts_response_bytes:
+                    gts_response_bytes = gts_response_bytes[:-4] + b''.join(
+                        int(i).to_bytes() for i in gts_connection_address.split('.')
+                    )
+                # send to ds
+                server_socket.sendto(gts_response_bytes, ds_response_address)
