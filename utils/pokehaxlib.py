@@ -1,6 +1,8 @@
+import datetime as dt
 import socket
 import hashlib
 import time
+import typing
 from base64 import urlsafe_b64encode
 from pathlib import Path
 
@@ -9,90 +11,91 @@ from .boxtoparty import makeparty
 from .pkmlib import encode
 
 
+def check_if_bytes(data: typing.Any) -> None:
+    if not isinstance(data, bytes):
+        raise TypeError(f'Expected bytes but got {type(data)}:\n{data}')
+
+
 class Request:
-    def __init__(self, h=None):
-        if not h:
-            self.action=None
-            self.page=None
-            self.getvars={}
-            return
-        elif isinstance(h, bytes):
-            h = h.decode()
-        if not h.startswith("GET"):
-            raise TypeError("Not a DS header!")
-        request=h[h.find("/syachi2ds/web/")+15:h.find("HTTP/1.1")-1]
-        #request=h.split("/")[3][:h.find("HTTP")-1]
-        self.page=request[:request.find("?")]
-        self.action=request[request.find("/")+1:request.find(".asp?")]
-        vars=dict((i[:i.find("=")], i[i.find("=")+1:]) for i in request[request.find("?")+1:].split("&"))
-        self.getvars=vars
+    """
+    Requests from clients.
 
-    def __str__(self):
-        request="%s?%s"%(self.page, '&'.join("%s=%s"%i for i in list(self.getvars.items())))
-        return 'GET /syachi2ds/web/%s HTTP/1.1\r\n'%request+ \
-            'Host: gamestats2.gs.nintendowifi.net\r\nUser-Agent: GameSpyHTTP/1.0\r\n'+ \
-            'Connection: close\r\n\r\n'
+    Action and parameter count are parsed from data.
 
-    def __repr__(self):
-        return "<Request for %s, with %s>"%(self.action, ", ".join(i+"="+j for i, j in list(self.getvars.items())))
+    Format of data:
+
+        b'''
+        GET /syachi2ds/web/${EXCHANGEPATH}/${ACTION}.asp?pid=303556658 HTTP/1.1\r\n
+        Host: gamestats2.gs.nintendowifi.net\r\n
+        User-Agent: GameSpyHTTP/1.0\r\n
+        Connection: close\r\n\r\n
+        '''
+
+    $EXCHANGEPATH is 'worldexchange' or 'common'
+    $ACTION is 'info', 'setProfile', 'post', 'search', 'result', or 'delete'
+
+    parameter_count == 0 when ' HTTP/1.1' and subsequent inputs are replaced with a hash.
+    """
+    def __init__(self, data: bytes) -> None:
+        check_if_bytes(data)
+        if not data.startswith(b'GET'):
+            raise RuntimeError(f'Expected request to start with \'GET\' but got {data}')
+        self.exchangepath, self.action = (
+            data.split(b'GET /syachi2ds/web/')[1].split(b'.asp?')[0].decode().split('/')
+        )
+        self.parameter_count = data.split(b'.asp?')[1].split(b' HTTP/1.1')[0].count(b'&')
 
 
 class Response:
-    def __init__(self, h):
-        self.is_pkm_data = False
-        if isinstance(h, bytes):
-            try:
-                h = h.decode()
-            except UnicodeDecodeError:
-                self.is_pkm_data = True
-                self.data = h
-                return
-        if not h.startswith("HTTP/1.1"):
-            self.data=h
-            return
-        h=h.split("\r\n")
-        while True:
-            line=h.pop(0)
-            if not line:
-                break
-            elif line.startswith("P3P"):
-                self.p3p=line[line.find(": ")+2:] # unknown
-            elif line.startswith("cluster-server"):
-                self.server=line[line.find(": ")+2:] # unknown
-            elif line.startswith("X-Server-"):
-                self.sname=line[line.find(": ")+2:] # unknown
-            elif line.startswith("Content-Length"):
-                self.len=int(line[line.find(": ")+2:]) # necessary
-            elif line.startswith("Set-Cookie"):
-                self.cookie=line[line.find(": ")+2:] # unnecessary
-        self.data="\r\n".join(h)
+    """
+    Responses from server.
 
-    def get_bytes(self):
-        months=[
-            "???", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct",
-            "Nov", "Dec"
-        ]
-        days=["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
-        t=time.gmtime()
-        str_repr = (
-            "HTTP/1.1 200 OK\r\n" +
-            "Date: %s, %02i %s %i %02i:%02i:%02i GMT\r\n"%(
-                    days[t[6]], t[2], months[t[1]], t[0], t[3], t[4], t[5]
-            ) +
-            "Server: Microsoft-IIS/6.0\r\n" +
-            "P3P: CP='NOI ADMa OUR STP'\r\n" +
-            "cluster-server: aphexweb3\r\n" +
-            "X-Server-Name: AW4\r\n" +
-            "X-Powered-By: ASP.NET\r\n" +
-            "Content-Length: %i\r\n"%len(self.data) +
-            "Content-Type: text/html\r\n" +
-            "Set-Cookie: ASPSESSIONIDQCDBDDQS=JFDOAMPAGACBDMLNLFBCCNCI; path=/\r\n" +
-            "Cache-control: private\r\n\r\n"
-        )
-        if self.is_pkm_data:
-            return str_repr.encode() + self.data
+    Current time, length of data, and data are returned when converted to bytes.
+    """
+    def __init__(self, request: Request, encoded_pkm: bytes) -> None:
+        self.is_sent = False
+        if request.parameter_count == 0:
+            self.data = gts.token
         else:
-            return str_repr.encode() + self.data.encode()
+            if request.action == 'info':
+                self.data = b'\x01\x00'
+                print('Connection established')
+            elif request.action == 'setProfile':
+                self.data = b'\x00' * 8
+            elif request.action == 'post':
+                self.data = b'\x0c\x00'
+            elif request.action == 'search':
+                self.data = b'\x01\x00'
+            elif request.action == 'result':
+                self.data = encoded_pkm
+            elif request.action == 'delete':
+                self.data = b'\x01\x00'
+                self.is_sent = True
+            else:
+                raise RuntimeError(f'Unexpected request action found: {action}')
+            m = hashlib.sha1()
+            m.update(gts.salt + urlsafe_b64encode(self.data) + gts.salt)
+            self.data += m.hexdigest().encode()
+
+    def __bytes__(self) -> bytes:
+        now = dt.datetime.now(dt.timezone.utc).strftime(
+            'Date: %a, %d %b %Y %H:%M:%S GMT\r\n'
+        )
+        content_length = f'Content-Length: {len(self.data)}\r\n'
+        return (
+            b'HTTP/1.1 200 OK\r\n' +
+            now.encode() +
+            b'Server: Microsoft-IIS/6.0\r\n' +
+            b'P3P: CP=\'NOI ADMa OUR STP\'\r\n' +
+            b'cluster-server: aphexweb3\r\n' +
+            b'X-Server-Name: AW4\r\n' +
+            b'X-Powered-By: ASP.NET\r\n' +
+            content_length.encode() +
+            b'Content-Type: text/html\r\n' +
+            b'Set-Cookie: ASPSESSIONIDQCDBDDQS=JFDOAMPAGACBDMLNLFBCCNCI; path=/\r\n' +
+            b'Cache-control: private\r\n\r\n' +
+            self.data
+        )
 
 
 def encode_pkm(pkm_path: Path) -> tuple[bytes, bytes]:
@@ -110,7 +113,7 @@ def encode_pkm(pkm_path: Path) -> tuple[bytes, bytes]:
         encoded_pkm += (pkm[0x40] & 2 + 1).to_bytes()
     encoded_pkm += pkm[0x8c:0x8c+1]  # level
     # request フシギダネ with either gender at any level
-    encoded_pkm += b'\x01\x00\x03\x00\x00\x00\x00\x00'
+    encoded_pkm += b'\x01\x00\x03\x00\x00\x00\x00\x00'  # request
     encoded_pkm += b'\xdb\x07\x03\x0a\x00\x00\x00\x00'  # date deposited as 3/10/2011
     encoded_pkm += b'\xdb\x07\x03\x16\x01\x30\x00\x00'  # date traded
     encoded_pkm += pkm[0x00:0x04]  # PID
@@ -119,38 +122,14 @@ def encode_pkm(pkm_path: Path) -> tuple[bytes, bytes]:
     encoded_pkm += pkm[0x68:0x78]  # original trainer Name
     encoded_pkm += b'\xDB\x02'  # country, city
     encoded_pkm += b'\x46\x01\x15\x02'  # sprite, exchanged, version, language
-    encoded_pkm += b'\x01\x00'
+    encoded_pkm += b'\x01\x00'  # unknown
     return pkm, encoded_pkm
 
 
 def encode_response(data: bytes, encoded_pkm: bytes) -> tuple[bytes, bool]:
-    is_sent = False
     request = Request(data)
-    action = request.action
-    if len(request.getvars) == 1:
-        response = gts.token
-    else:
-        if action == 'info':
-            response = b'\x01\x00'
-            print('Connection established')
-        elif action == 'setProfile':
-            response = b'\x00' * 8
-        elif action == 'post':
-            response = b'\x0c\x00'
-        elif action == 'search':
-            response = b'\x01\x00'
-        elif action == 'result':
-            response = encoded_pkm
-        elif action == 'delete':
-            response = b'\x01\x00'
-            is_sent = True
-        m = hashlib.sha1()
-        m.update(
-            gts.salt.encode() + urlsafe_b64encode(response) + gts.salt.encode()
-        )
-        response += m.hexdigest().encode()
-    response = Response(response).get_bytes()
-    return response, is_sent
+    response = Response(request, encoded_pkm)
+    return bytes(response), response.is_sent
 
 
 def connect(address: str, port: int) -> tuple[str, int]:
