@@ -2,6 +2,7 @@ import datetime as dt
 import socket
 import hashlib
 import time
+import typing
 from base64 import urlsafe_b64encode
 from pathlib import Path
 
@@ -10,59 +11,66 @@ from .boxtoparty import makeparty
 from .pkmlib import encode
 
 
+def check_if_bytes(data: typing.Any) -> None:
+    if not isinstance(data, bytes):
+        raise TypeError(f'Expected bytes but got {type(data)}:\n{data}')
+
+
 class Request:
-    def __init__(self, h=None):
-        if not h:
-            self.action=None
-            self.page=None
-            self.getvars={}
-            return
-        elif isinstance(h, bytes):
-            h = h.decode()
-        if not h.startswith("GET"):
-            raise TypeError("Not a DS header!")
-        request=h[h.find("/syachi2ds/web/")+15:h.find("HTTP/1.1")-1]
-        #request=h.split("/")[3][:h.find("HTTP")-1]
-        self.page=request[:request.find("?")]
-        self.action=request[request.find("/")+1:request.find(".asp?")]
-        vars=dict((i[:i.find("=")], i[i.find("=")+1:]) for i in request[request.find("?")+1:].split("&"))
-        self.getvars=vars
+    """
+    Requests from clients.
 
-    def __str__(self):
-        request="%s?%s"%(self.page, '&'.join("%s=%s"%i for i in list(self.getvars.items())))
-        return 'GET /syachi2ds/web/%s HTTP/1.1\r\n'%request+ \
-            'Host: gamestats2.gs.nintendowifi.net\r\nUser-Agent: GameSpyHTTP/1.0\r\n'+ \
-            'Connection: close\r\n\r\n'
+    Format of data:
 
-    def __repr__(self):
-        return "<Request for %s, with %s>"%(self.action, ", ".join(i+"="+j for i, j in list(self.getvars.items())))
+        b'''
+        GET /syachi2ds/web/${EXCHANGEPATH}/${ACTION}.asp?pid=303556658 HTTP/1.1\r\n
+        Host: gamestats2.gs.nintendowifi.net\r\n
+        User-Agent: GameSpyHTTP/1.0\r\n
+        Connection: close\r\n\r\n
+        '''
+
+    $EXCHANGEPATH is 'worldexchange' or 'common'
+    $ACTION is 'info', 'setProfile', 'post', 'search', 'result', or 'delete'
+
+    parameter_count == 0 when ' HTTP/1.1' and subsequent inputs are replaced with a hash.
+    """
+    def __init__(self, data: bytes) -> None:
+        check_if_bytes(data)
+        if not data.startswith(b'GET'):
+            raise RuntimeError(f'Expected request to start with \'GET\' but got {data}')
+        self.exchangepath, self.action = (
+            data.split(b'GET /syachi2ds/web/')[1].split(b'.asp?')[0].decode().split('/')
+        )
+        self.parameter_count = data.split(b'.asp?')[1].split(b' HTTP/1.1')[0].count(b'&')
 
 
 class Response:
-    def __init__(self, data: str | bytes) -> None:
-        if isinstance(data, str):
-            data = data.encode()
-        elif isinstance(data, bytes):
-            pass
-        else:
-            raise TypeError(f'Expected str or bytes but got {type(data)}')
+    """
+    Responses from server.
+
+    Current time, length of data, and data are returned when converted to bytes.
+    """
+    def __init__(self, data: bytes) -> None:
+        check_if_bytes(data)
         self.data = data
 
     def __bytes__(self) -> bytes:
-        now = dt.datetime.now(dt.timezone.utc).strftime('Date: %a, %d %b %Y %H:%M:%S GMT\r\n')
-        content_length = f"Content-Length: {len(self)}\r\n"
+        now = dt.datetime.now(dt.timezone.utc).strftime(
+            'Date: %a, %d %b %Y %H:%M:%S GMT\r\n'
+        )
+        content_length = f'Content-Length: {len(self)}\r\n'
         return (
-            b"HTTP/1.1 200 OK\r\n" +
+            b'HTTP/1.1 200 OK\r\n' +
             now.encode() +
-            b"Server: Microsoft-IIS/6.0\r\n" +
-            b"P3P: CP='NOI ADMa OUR STP'\r\n" +
-            b"cluster-server: aphexweb3\r\n" +
-            b"X-Server-Name: AW4\r\n" +
-            b"X-Powered-By: ASP.NET\r\n" +
+            b'Server: Microsoft-IIS/6.0\r\n' +
+            b'P3P: CP=\'NOI ADMa OUR STP\'\r\n' +
+            b'cluster-server: aphexweb3\r\n' +
+            b'X-Server-Name: AW4\r\n' +
+            b'X-Powered-By: ASP.NET\r\n' +
             content_length.encode() +
-            b"Content-Type: text/html\r\n" +
-            b"Set-Cookie: ASPSESSIONIDQCDBDDQS=JFDOAMPAGACBDMLNLFBCCNCI; path=/\r\n" +
-            b"Cache-control: private\r\n\r\n" +
+            b'Content-Type: text/html\r\n' +
+            b'Set-Cookie: ASPSESSIONIDQCDBDDQS=JFDOAMPAGACBDMLNLFBCCNCI; path=/\r\n' +
+            b'Cache-control: private\r\n\r\n' +
             self.data
         )
 
@@ -102,7 +110,7 @@ def encode_response(data: bytes, encoded_pkm: bytes) -> tuple[bytes, bool]:
     is_sent = False
     request = Request(data)
     action = request.action
-    if len(request.getvars) == 1:
+    if request.parameter_count == 0:
         response = gts.token
     else:
         if action == 'info':
@@ -119,10 +127,10 @@ def encode_response(data: bytes, encoded_pkm: bytes) -> tuple[bytes, bool]:
         elif action == 'delete':
             response = b'\x01\x00'
             is_sent = True
+        else:
+            raise RuntimeError(f'Unexpected request action found: {action}')
         m = hashlib.sha1()
-        m.update(
-            gts.salt.encode() + urlsafe_b64encode(response) + gts.salt.encode()
-        )
+        m.update(gts.salt + urlsafe_b64encode(response) + gts.salt)
         response += m.hexdigest().encode()
     response = bytes(Response(response))
     return response, is_sent
