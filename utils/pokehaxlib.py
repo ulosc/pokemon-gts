@@ -20,6 +20,8 @@ class Request:
     """
     Requests from clients.
 
+    Action and parameter count are parsed from data.
+
     Format of data:
 
         b'''
@@ -50,15 +52,36 @@ class Response:
 
     Current time, length of data, and data are returned when converted to bytes.
     """
-    def __init__(self, data: bytes) -> None:
-        check_if_bytes(data)
-        self.data = data
+    def __init__(self, request: Request, encoded_pkm: bytes) -> None:
+        self.is_sent = False
+        if request.parameter_count == 0:
+            self.data = gts.token
+        else:
+            if request.action == 'info':
+                self.data = b'\x01\x00'
+                print('Connection established')
+            elif request.action == 'setProfile':
+                self.data = b'\x00' * 8
+            elif request.action == 'post':
+                self.data = b'\x0c\x00'
+            elif request.action == 'search':
+                self.data = b'\x01\x00'
+            elif request.action == 'result':
+                self.data = encoded_pkm
+            elif request.action == 'delete':
+                self.data = b'\x01\x00'
+                self.is_sent = True
+            else:
+                raise RuntimeError(f'Unexpected request action found: {action}')
+            m = hashlib.sha1()
+            m.update(gts.salt + urlsafe_b64encode(self.data) + gts.salt)
+            self.data += m.hexdigest().encode()
 
     def __bytes__(self) -> bytes:
         now = dt.datetime.now(dt.timezone.utc).strftime(
             'Date: %a, %d %b %Y %H:%M:%S GMT\r\n'
         )
-        content_length = f'Content-Length: {len(self)}\r\n'
+        content_length = f'Content-Length: {len(self.data)}\r\n'
         return (
             b'HTTP/1.1 200 OK\r\n' +
             now.encode() +
@@ -73,9 +96,6 @@ class Response:
             b'Cache-control: private\r\n\r\n' +
             self.data
         )
-
-    def __len__(self) -> int:
-        return len(self.data)
 
 
 def encode_pkm(pkm_path: Path) -> tuple[bytes, bytes]:
@@ -107,33 +127,9 @@ def encode_pkm(pkm_path: Path) -> tuple[bytes, bytes]:
 
 
 def encode_response(data: bytes, encoded_pkm: bytes) -> tuple[bytes, bool]:
-    is_sent = False
     request = Request(data)
-    action = request.action
-    if request.parameter_count == 0:
-        response = gts.token
-    else:
-        if action == 'info':
-            response = b'\x01\x00'
-            print('Connection established')
-        elif action == 'setProfile':
-            response = b'\x00' * 8
-        elif action == 'post':
-            response = b'\x0c\x00'
-        elif action == 'search':
-            response = b'\x01\x00'
-        elif action == 'result':
-            response = encoded_pkm
-        elif action == 'delete':
-            response = b'\x01\x00'
-            is_sent = True
-        else:
-            raise RuntimeError(f'Unexpected request action found: {action}')
-        m = hashlib.sha1()
-        m.update(gts.salt + urlsafe_b64encode(response) + gts.salt)
-        response += m.hexdigest().encode()
-    response = bytes(Response(response))
-    return response, is_sent
+    response = Response(request, encoded_pkm)
+    return bytes(response), response.is_sent
 
 
 def connect(address: str, port: int) -> tuple[str, int]:
