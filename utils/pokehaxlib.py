@@ -1,6 +1,7 @@
 import datetime as dt
-import socket
+import logging
 import hashlib
+import socket
 import time
 import typing
 from base64 import urlsafe_b64encode
@@ -9,6 +10,9 @@ from pathlib import Path
 from . import gts
 from .boxtoparty import makeparty
 from .pkmlib import encode
+
+
+logger = logging.getLogger(__name__)
 
 
 def check_if_bytes(data: typing.Any) -> None:
@@ -59,7 +63,7 @@ class Response:
         else:
             if request.action == 'info':
                 self.data = b'\x01\x00'
-                print('Connection established')
+                logging.info('Connection established')
             elif request.action == 'setProfile':
                 self.data = b'\x00' * 8
             elif request.action == 'post':
@@ -141,7 +145,7 @@ def connect(address: str, port: int) -> tuple[str, int]:
 
 def spoof_dns(gts_dns_address: str = gts.DNS, gts_dns_port: int = 53) -> None:
     gts_connection_address, gts_connection_port = connect(gts_dns_address, gts_dns_port)
-    print(f'Set DNS on DS to {gts_connection_address}')
+    logger.info(f'Set DNS on DS to {gts_connection_address}')
     with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as server_socket:
         server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         server_socket.bind(('0.0.0.0', gts_dns_port))

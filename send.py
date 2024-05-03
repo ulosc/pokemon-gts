@@ -1,10 +1,16 @@
 import argparse
+import logging
 import socket
 import threading
 import time
 from pathlib import Path
 
+from utils.log import set_root_logger
 from utils.pokehaxlib import encode_pkm, encode_response, spoof_dns
+
+
+set_root_logger()
+logger = logging.getLogger(__name__)
 
 
 def send_pkm(pkm_path: Path) -> None:
@@ -17,7 +23,7 @@ def send_pkm(pkm_path: Path) -> None:
         s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         s.bind(('0.0.0.0', 80))
         s.listen()
-        print('Enter GTS')
+        logger.info('Enter GTS')
         while True:
             # accept connection from ds
             connection_socket, connection_address = s.accept()
