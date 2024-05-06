@@ -10,7 +10,7 @@ from pathlib import Path
 from . import gts
 from .boxtoparty import makeparty
 from .log import log_response
-from .pkmlib import encode
+from .rng import encode_rng
 
 
 logger = logging.getLogger(__name__)
@@ -109,7 +109,7 @@ def encode_pkm(pkm_path: Path) -> tuple[bytes, bytes]:
     assert len(pkm) in [136, 220]
     if len(pkm) == 136:
         pkm = makeparty(pkm)
-    encoded_pkm = encode(pkm)
+    encoded_pkm = encode_rng(pkm)
     encoded_pkm += b'\x00' * 16
     encoded_pkm += pkm[0x08:0x0a]  # ID
     if pkm[0x40] & 0x04:
