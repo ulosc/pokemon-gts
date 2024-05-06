@@ -1,6 +1,9 @@
 import logging
 
 
+logger = logging.getLogger(__name__)
+
+
 def set_root_logger(log_file: str = './gts.log') -> None:
     logger = logging.getLogger()
     logger.setLevel(logging.DEBUG)
@@ -13,3 +16,8 @@ def set_root_logger(log_file: str = './gts.log') -> None:
     file_handler = logging.FileHandler(log_file, mode='w')
     file_handler.setFormatter(formatter)
     logger.addHandler(file_handler)
+
+
+def log_response(response: bytes, responder: str) -> None:
+    logger.debug(f'--- Response from {responder} ---')
+    logger.debug(response)

@@ -5,7 +5,7 @@ import threading
 import time
 from pathlib import Path
 
-from utils.log import set_root_logger
+from utils.log import set_root_logger, log_response
 from utils.pokehaxlib import encode_pkm, encode_response, spoof_dns
 
 
@@ -30,6 +30,7 @@ def send_pkm(pkm_path: Path) -> None:
             with connection_socket:
                 # receive from ds
                 ds_response_bytes = connection_socket.recv(512)
+                log_response(ds_response_bytes, f'{connection_address} (DS)')
                 # create response for ds
                 encoded_response_bytes, is_sent = encode_response(
                     data=ds_response_bytes,

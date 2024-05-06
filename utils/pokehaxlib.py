@@ -9,6 +9,7 @@ from pathlib import Path
 
 from . import gts
 from .boxtoparty import makeparty
+from .log import log_response
 from .pkmlib import encode
 
 
@@ -144,6 +145,7 @@ def connect(address: str, port: int) -> tuple[str, int]:
 
 
 def spoof_dns(gts_dns_address: str = gts.DNS, gts_dns_port: int = 53) -> None:
+    logger.info('Spoofing DNS')
     gts_connection_address, gts_connection_port = connect(gts_dns_address, gts_dns_port)
     logger.info(f'Set DNS on DS to {gts_connection_address}')
     with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as server_socket:
@@ -152,13 +154,15 @@ def spoof_dns(gts_dns_address: str = gts.DNS, gts_dns_port: int = 53) -> None:
         while True:
             # receive from ds
             ds_response_bytes, ds_response_address = server_socket.recvfrom(512)
+            log_response(ds_response_bytes, f'{ds_response_address} (DS)')
             with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as client_socket:
                 # connect to gts
                 client_socket.connect((gts_dns_address, gts_dns_port))
                 # send to gts
                 client_socket.send(ds_response_bytes)
                 # receive from gts
-                gts_response_bytes = client_socket.recv(512)
+                gts_response_bytes, gts_response_address = client_socket.recvfrom(512)
+                log_response(gts_response_bytes, f'{gts_response_address} (GTS)')
                 if b'gamestats2' in gts_response_bytes:
                     gts_response_bytes = gts_response_bytes[:-4] + b''.join(
                         int(i).to_bytes() for i in gts_connection_address.split('.')
