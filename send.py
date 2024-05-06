@@ -6,7 +6,8 @@ import time
 from pathlib import Path
 
 from utils.log import set_root_logger, log_response
-from utils.pokehaxlib import encode_pkm, encode_response, spoof_dns
+from utils.networking import encode_response, spoof_dns
+from utils.rng import encode_pkm
 
 
 set_root_logger()

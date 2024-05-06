@@ -5,12 +5,9 @@ import socket
 import time
 import typing
 from base64 import urlsafe_b64encode
-from pathlib import Path
 
 from . import gts
-from .boxtoparty import makeparty
 from .log import log_response
-from .rng import encode_rng
 
 
 logger = logging.getLogger(__name__)
@@ -101,34 +98,6 @@ class Response:
             b'Cache-control: private\r\n\r\n' +
             self.data
         )
-
-
-def encode_pkm(pkm_path: Path) -> tuple[bytes, bytes]:
-    with open(pkm_path, 'rb') as f:
-        pkm = f.read()
-    assert len(pkm) in [136, 220]
-    if len(pkm) == 136:
-        pkm = makeparty(pkm)
-    encoded_pkm = encode_rng(pkm)
-    encoded_pkm += b'\x00' * 16
-    encoded_pkm += pkm[0x08:0x0a]  # ID
-    if pkm[0x40] & 0x04:
-        encoded_pkm += b'\x03'  # gender
-    else:
-        encoded_pkm += (pkm[0x40] & 2 + 1).to_bytes()
-    encoded_pkm += pkm[0x8c:0x8c+1]  # level
-    # request フシギダネ with either gender at any level
-    encoded_pkm += b'\x01\x00\x03\x00\x00\x00\x00\x00'  # request
-    encoded_pkm += b'\xdb\x07\x03\x0a\x00\x00\x00\x00'  # date deposited as 3/10/2011
-    encoded_pkm += b'\xdb\x07\x03\x16\x01\x30\x00\x00'  # date traded
-    encoded_pkm += pkm[0x00:0x04]  # PID
-    encoded_pkm += pkm[0x0c:0x0e]  # original trainer ID
-    encoded_pkm += pkm[0x0e:0x10]  # original trainer SID
-    encoded_pkm += pkm[0x68:0x78]  # original trainer Name
-    encoded_pkm += b'\xDB\x02'  # country, city
-    encoded_pkm += b'\x46\x01\x15\x02'  # sprite, exchanged, version, language
-    encoded_pkm += b'\x01\x00'  # unknown
-    return pkm, encoded_pkm
 
 
 def encode_response(data: bytes, encoded_pkm: bytes) -> tuple[bytes, bool]:
